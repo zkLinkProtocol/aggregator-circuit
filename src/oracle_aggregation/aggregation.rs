@@ -115,6 +115,7 @@ pub fn aggregate_oracle_proofs<
     let mut final_price_commitment = Num::zero();
     let (mut earliest_publish_time, mut is_correct_earliest_publish_time) = (Num::zero(), vec![Boolean::constant(true)]);
     let mut last_oracle_input_data = OracleOutputData::empty();
+    let mut idx = Num::zero();
     for proof_idx in 0..num_proofs_to_aggregate {
         let used_circuit_type = Num::alloc(
             cs,
@@ -159,14 +160,22 @@ pub fn aggregate_oracle_proofs<
             let is_equal_or_greater = Boolean::or(cs, &is_equal, &is_greater)?;
             is_correct_earliest_publish_time.push(is_equal_or_greater);
         }
+        let offset = idx.mul(cs, &oracle_input_data.prices_commitment.prices_commitment_base_sum)?;
         let acc_price_commitment = final_price_commitment
-            .square(cs)?
-            .add(cs, &oracle_input_data.final_price_commitment)?;
+            .add(cs, &oracle_input_data.prices_commitment.prices_commitment)?
+            .add(cs, &offset)?;
         final_price_commitment = Num::conditionally_select(
             cs,
             &is_padding,
             &final_price_commitment,
             &acc_price_commitment,
+        )?;
+        let new_idx = idx.add(cs, &oracle_input_data.prices_commitment.prices_num)?;
+        idx = Num::conditionally_select(
+            cs,
+            &is_padding,
+            &idx,
+            &new_idx,
         )?;
 
         used_key_commitments.push(vk_commitment_to_use);
