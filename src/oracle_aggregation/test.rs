@@ -5,7 +5,7 @@ use crate::bellman::bn256::Bn256;
 use crate::params::{COMMON_CRYPTO_PARAMS, RescueTranscriptForRecursion};
 
 #[test]
-fn test_all_aggregation_circuit() {
+fn test_oracle_aggregation_circuit() {
     use crate::OracleCircuitType::*;
     use zklink_oracle::ZkLinkOracle;
 
