@@ -244,10 +244,8 @@ pub fn aggregate_oracle_proofs<
 mod tests {
     use crate::crypto_utils::PaddingCryptoComponent;
     use crate::oracle_aggregation::aggregation::aggregate_oracle_proofs;
+    use crate::tests::generate_test_constraint_system;
     use advanced_circuit_component::franklin_crypto::bellman::bn256::Fq;
-    use advanced_circuit_component::franklin_crypto::bellman::plonk::better_better_cs::cs::{ConstraintSystem, PlonkCsWidth4WithNextStepAndCustomGatesParams, PolyIdentifier, TrivialAssembly};
-    use advanced_circuit_component::franklin_crypto::bellman::plonk::better_better_cs::gates::selector_optimized_with_d_next::SelectorOptimizedWidth4MainGateWithDNext;
-    use advanced_circuit_component::franklin_crypto::bellman::plonk::better_better_cs::lookup_tables::LookupTableApplication;
     use advanced_circuit_component::franklin_crypto::plonk::circuit::bigint::RnsParameters;
     use advanced_circuit_component::recursion::get_base_placeholder_point_for_accumulators;
     use advanced_circuit_component::recursion::recursion_tree::AggregationParameters;
@@ -256,36 +254,7 @@ mod tests {
     use advanced_circuit_component::testing::Bn256;
     use advanced_circuit_component::traits::GenericHasher;
     use advanced_circuit_component::utils::bn254_rescue_params;
-    use advanced_circuit_component::vm::tables::BitwiseLogicTable;
-    use advanced_circuit_component::vm::VM_BITWISE_LOGICAL_OPS_TABLE_NAME;
 
-    type ActualConstraintSystem = TrivialAssembly<
-        Bn256,
-        PlonkCsWidth4WithNextStepAndCustomGatesParams,
-        SelectorOptimizedWidth4MainGateWithDNext,
-    >;
-
-    fn generate_test_constraint_system() -> ActualConstraintSystem {
-        let (mut cs, _, _) = advanced_circuit_component::testing::create_test_artifacts_with_optimized_gate();
-        let columns3 = vec![
-            PolyIdentifier::VariablesPolynomial(0),
-            PolyIdentifier::VariablesPolynomial(1),
-            PolyIdentifier::VariablesPolynomial(2),
-        ];
-
-        if cs.get_table(VM_BITWISE_LOGICAL_OPS_TABLE_NAME).is_err() {
-            let name = VM_BITWISE_LOGICAL_OPS_TABLE_NAME;
-            let bitwise_logic_table = LookupTableApplication::new(
-                name,
-                BitwiseLogicTable::new(&name, 8),
-                columns3.clone(),
-                None,
-                true,
-            );
-            cs.add_table(bitwise_logic_table).unwrap();
-        };
-        cs
-    }
 
     #[test]
     fn test_oracle_aggregation() {
