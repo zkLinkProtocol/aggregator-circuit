@@ -36,7 +36,14 @@ fn test_all_aggregation_circuit() {
         ).unwrap();
     let proof: UniformProof<Bn256> = unsafe { std::mem::transmute(proof) };
     let vk: UniformVerificationKey<Bn256> = unsafe { std::mem::transmute(vk) };
-    let vks = BTreeMap::from([(Aggregation1, vk.clone()), (AggregationNull, vk)]);
+    let vks = BTreeMap::from([
+        (AggregationNull, vk.clone()),
+        (Aggregation1, vk.clone()),
+        (Aggregation2, vk.clone()),
+        (Aggregation3, vk.clone()),
+        (Aggregation4, vk.clone()),
+        (Aggregation5, vk),
+    ]);
     let oracle_aggregation_circuit = OracleAggregationCircuit::generate(
         vec![oracle_inputs_data],
         vec![(Aggregation1, proof.clone())],
