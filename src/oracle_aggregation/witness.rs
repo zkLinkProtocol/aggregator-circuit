@@ -134,7 +134,7 @@ impl OracleAggregationCircuit<'_, Bn256> {
 pub struct OracleAggregationOutputData<E: Engine> {
     pub oracle_vks_hash: Num<E>,
     pub guardian_set_hash: Num<E>,
-    pub final_price_commitment: Num<E>,
+    pub prices_commitment: OraclePricesCommitment<E>,
     pub earliest_publish_time: Num<E>,
     pub aggregation_output_data: NodeAggregationOutputData<E>,
 }
@@ -144,7 +144,7 @@ impl<E: Engine> CircuitEmpty<E> for OracleAggregationOutputData<E> {
         Self {
             oracle_vks_hash: Num::zero(),
             guardian_set_hash: Num::zero(),
-            final_price_commitment: Num::zero(),
+            prices_commitment: CircuitEmpty::empty(),
             earliest_publish_time: Num::zero(),
             aggregation_output_data: CircuitEmpty::empty(),
         }

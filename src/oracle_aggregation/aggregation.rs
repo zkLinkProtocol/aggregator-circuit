@@ -4,7 +4,7 @@ use crate::crypto_utils::PaddingCryptoComponent;
 use crate::oracle_aggregation::witness::{
     OracleAggregationCircuit, OracleAggregationOutputData, OracleCircuitType, OracleOutputData,
 };
-use crate::{ALL_AGGREGATION_TYPES, check_and_select_vk_commitment, ORACLE_CIRCUIT_TYPES_NUM};
+use crate::{ALL_AGGREGATION_TYPES, check_and_select_vk_commitment, ORACLE_CIRCUIT_TYPES_NUM, OraclePricesCommitment};
 use advanced_circuit_component::franklin_crypto::bellman::plonk::better_better_cs::cs::ConstraintSystem;
 use advanced_circuit_component::franklin_crypto::bellman::{Engine, SynthesisError};
 use advanced_circuit_component::franklin_crypto::plonk::circuit::allocated_num::{AllocatedNum, Num};
@@ -115,7 +115,8 @@ pub fn aggregate_oracle_proofs<
     let mut final_price_commitment = Num::zero();
     let (mut earliest_publish_time, mut is_correct_earliest_publish_time) = (Num::zero(), vec![Boolean::constant(true)]);
     let mut last_oracle_input_data = OracleOutputData::empty();
-    let mut idx = Num::zero();
+    let mut prices_num = Num::zero();
+    let mut prices_commitment_base_sum = Num::zero();
     for proof_idx in 0..num_proofs_to_aggregate {
         let used_circuit_type = Num::alloc(
             cs,
@@ -160,7 +161,7 @@ pub fn aggregate_oracle_proofs<
             let is_equal_or_greater = Boolean::or(cs, &is_equal, &is_greater)?;
             is_correct_earliest_publish_time.push(is_equal_or_greater);
         }
-        let offset = idx.mul(cs, &oracle_input_data.prices_commitment.prices_commitment_base_sum)?;
+        let offset = prices_num.mul(cs, &oracle_input_data.prices_commitment.prices_commitment_base_sum)?;
         let acc_price_commitment = final_price_commitment
             .add(cs, &oracle_input_data.prices_commitment.prices_commitment)?
             .add(cs, &offset)?;
@@ -170,12 +171,19 @@ pub fn aggregate_oracle_proofs<
             &final_price_commitment,
             &acc_price_commitment,
         )?;
-        let new_idx = idx.add(cs, &oracle_input_data.prices_commitment.prices_num)?;
-        idx = Num::conditionally_select(
+        let new_prices_num = prices_num.add(cs, &oracle_input_data.prices_commitment.prices_num)?;
+        prices_num = Num::conditionally_select(
             cs,
             &is_padding,
-            &idx,
-            &new_idx,
+            &prices_num,
+            &new_prices_num,
+        )?;
+        let new_prices_commitment_base_sum = oracle_input_data.prices_commitment.prices_commitment_base_sum;
+        prices_commitment_base_sum = Num::conditionally_select(
+            cs,
+            &is_padding,
+            &prices_commitment_base_sum,
+            &new_prices_commitment_base_sum,
         )?;
 
         used_key_commitments.push(vk_commitment_to_use);
@@ -211,7 +219,11 @@ pub fn aggregate_oracle_proofs<
     let public_input_data = OracleAggregationOutputData {
         oracle_vks_hash: enforce_commit_vks_commitments(cs, vk_commitments, commit_function)?,
         guardian_set_hash,
-        final_price_commitment,
+        prices_commitment: OraclePricesCommitment{
+            prices_commitment: final_price_commitment,
+            prices_num,
+            prices_commitment_base_sum,
+        },
         earliest_publish_time,
         aggregation_output_data: NodeAggregationOutputData {
             pair_with_x_x,
